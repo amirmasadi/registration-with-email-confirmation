@@ -3,14 +3,14 @@ package com.example.demo.registration;
 import com.example.demo.appuser.AppUser;
 import com.example.demo.appuser.AppUserRole;
 import com.example.demo.appuser.AppUserService;
+import com.example.demo.email.EmailService;
+import com.example.demo.email.EmailTemplate;
 import com.example.demo.registration.token.ConfirmationToken;
 import com.example.demo.registration.token.ConfirmationTokenService;
-import org.aspectj.apache.bcel.classfile.LocalVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 public class RegistrationService {
@@ -20,13 +20,17 @@ public class RegistrationService {
   private AppUserService appUserService;
   @Autowired
   private ConfirmationTokenService confirmationTokenService;
+  @Autowired
+  private EmailService emailService;
 
   public String register(RegistrationRequest registrationRequest) {
     boolean isEmailValid = emailValidator.test(registrationRequest.email());
+
     if (!isEmailValid) {
       throw new IllegalStateException("email is not valid");
     }
-    return appUserService.signupUser(
+
+    String newUserToken = appUserService.signupUser(
             new AppUser(
                     registrationRequest.firstName(),
                     registrationRequest.lastName(),
@@ -35,6 +39,12 @@ public class RegistrationService {
                     AppUserRole.USER
             )
     );
+
+    String confirmationEmailLink = "http://localhost:8080/api/v1/registration/confirm?token=" + newUserToken;
+
+    emailService.send(registrationRequest.email(), new EmailTemplate().build(registrationRequest.firstName(), confirmationEmailLink));
+
+    return newUserToken;
   }
 
   public String confirmToken(String token) {
@@ -50,6 +60,8 @@ public class RegistrationService {
     if (confirmationToken.getExpiresAt().isBefore(currentTime)) {
       throw new IllegalStateException("Token Expired");
     }
+
+    //TODO what if token expires and user want a new token?
 
     confirmationTokenService.setTokenConfirmedAt(confirmationToken, currentTime);
     appUserService.enableAppUser(confirmationToken.getAppuser().getId());

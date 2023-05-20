@@ -23,4 +23,5 @@ public class ConfirmationTokenService {
     confirmationToken.setConfirmedAt(time);
     saveConfirmationToken(confirmationToken);
   }
+
 }

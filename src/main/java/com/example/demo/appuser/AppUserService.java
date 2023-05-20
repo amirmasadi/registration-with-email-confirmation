@@ -30,9 +30,11 @@ public class AppUserService implements UserDetailsService {
 
   public String signupUser(AppUser appuser) {
     boolean isUserExists = appUserRepository.findByEmail(appuser.getEmail()).isPresent();
+
     if (isUserExists) {
       throw new IllegalStateException("Email already taken");
     }
+
     String encodedPass = bCryptPasswordEncoder.encode(appuser.getPassword());
     appuser.setPassword(encodedPass);
     appUserRepository.save(appuser);
@@ -40,7 +42,6 @@ public class AppUserService implements UserDetailsService {
     ConfirmationToken confirmationToken = new ConfirmationToken(token, LocalDateTime.now(),
             LocalDateTime.now().plusMinutes(15), appuser);
     confirmationTokenService.saveConfirmationToken(confirmationToken);
-    //TODO: Send email
     return token;
   }
 
